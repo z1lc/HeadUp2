@@ -38,7 +38,7 @@ void setup() {
 }
 
 void draw() {
-  getDistance(0);  // run the OpenCV routine
+  getDistance();  // run the OpenCV routine
   if (trigHeight!=0 && trigDist!=0 && !pause) { //check if limits have been initialized
                                                 //and if pause is off
     if (rSig > trigDist || ypos > trigHeight) alm = true; //compare values to limits 
@@ -85,7 +85,7 @@ void draw() {
  
 }
 
-void getDistance(int interval) { //OPenCV functions
+void getDistance() { //OPenCV functions
   //pushmatrix and popmatrix prevents the buttons from beeing scaled with the video
   pushMatrix(); 
   scale(0.5); // scales the video to the window size
@@ -98,7 +98,6 @@ void getDistance(int interval) { //OPenCV functions
   else stroke(0, 255, 0);
   strokeWeight(4);
   Rectangle[] faces = opencv.detect();
-  int dist = 0;
   for (int i = 0; i < faces.length; i++) {
     //println(faces[i].x + "," + faces[i].y);
     rect(faces[i].x, faces[i].y, faces[i].width, faces[i].height);
