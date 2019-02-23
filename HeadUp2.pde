@@ -1,12 +1,14 @@
 import gab.opencv.*;
 import processing.video.*;
 import java.awt.*;
-import javax.swing.JFrame; // needed for displaying multiple windows
+import javax.swing.*;
+
+int TIME_LIMIT_SECONDS = 10;
+int CHECKS_PER_SECOND = 1;
+float MAX_OPACITY = 0.95;
 
 PImage mind;
 PFrame f; // create frame for webcam image
-secondApplet s; // create frame for popup
-boolean popup;
 String[] list = new String[2]; // list for settings
 int ypos; // the height 
 int rSig; // the distance
@@ -17,8 +19,10 @@ boolean alm; // alarm
 boolean pause;
 Capture video;
 OpenCV opencv;
+float opacity = 0.1;
 
 void setup() {
+  frameRate(CHECKS_PER_SECOND);
   size(320, 240);
   mind = this.loadImage("mind.png");
   //The next lines are for intitializing the camera and OpenCV
@@ -39,17 +43,22 @@ void setup() {
 
 void draw() {
   getDistance();  // run the OpenCV routine
-  if (trigHeight!=0 && trigDist!=0 && !pause) { //check if limits have been initialized
-                                                //and if pause is off
+  if (pause) {
+    alm = false;
+  }
+  if (trigHeight!=0 && trigDist!=0 && !pause) {
     if (rSig > trigDist || ypos > trigHeight) alm = true; //compare values to limits 
     else alm = false;
+  } else {
+    alm = false;
   }
+  
+  int timeMillis = TIME_LIMIT_SECONDS * 1000;
 
-  if (alm == false){
-    almTimer = millis() + 2000;  //reset alarm timer if alarm is off
+  if (!alm){
+    almTimer = millis() + timeMillis;  //reset alarm timer if alarm is off
     setPopup(false); // close popup
-  }
-  else if ((millis() > almTimer) && (millis() - 2000 < almTimer)){ //check if alarm timer has expired
+  } else if ((millis() > almTimer)){ // && (millis() - timeMillis < almTimer)
     setPopup(true); // open popup
   }
   
@@ -129,12 +138,21 @@ boolean mouseOver(int xpos, int ypos, int rwidth, int rheight){
 }
 
 public void setPopup(boolean popEnable){
-  if (popEnable && popup == false){ // open popup
-    f = new PFrame();
-    f.setAlwaysOnTop(true);
-    popup = true;
+  if (popEnable) {
+    if (f == null) {
+      f = new PFrame();
+    }
+    f.setOpacity(Math.min(MAX_OPACITY, opacity));
+    opacity += 0.02;
+    this.frameRate(60); //increase frame rate so opacity comes in clean
+  } else {
+    opacity = 0;
+    this.frameRate(CHECKS_PER_SECOND);
   }
-  else if (popup == true) f.setVisible(popEnable); // refresh / hide popup
+
+  if (f != null) {
+    f.setVisible(popEnable);
+  }
 }
 
 public void loadsettings(String paramString){ // load settings from file
@@ -149,27 +167,25 @@ public void savesettings(String paramString){ // save settings to file
   saveStrings(dataPath(paramString), list);
 }
 
-public class secondApplet extends PApplet{ //draw popup window
-  public secondApplet() {}
-  
-  public void setup()
-  {
-    size(600, 300);
+public class PFrame extends JFrame { // configure popup window and position
+  public PFrame() {
+    int width = displayWidth; //(int) Math.floor(displayWidth * 0.8);
+    int height = displayHeight; //(int) Math.floor(displayHeight * 0.8);
+    setBounds(displayWidth / 2 - width / 2, displayHeight / 2 - height / 2, width, height);
+    this.setFocusableWindowState(false);
+    this.setUndecorated(true);
+    this.setAlwaysOnTop(true);
+    JLabel label = new JLabel("CHECK YOUR POSTURE!", SwingConstants.CENTER);
+    label.setFont(new Font("Sans", Font.PLAIN, 150));
+    add(label);
   }
   
-  public void draw()
-  {
-    background(255.0, 255.0, 255.0);   
-    image(mind, -10.0, -25.0);
-  }
-}
-
-public class PFrame extends JFrame{ // configure popup window and position
-  public PFrame(){
-    setBounds(displayWidth / 2 - 300, displayHeight / 3, 600, 300);
-    s = new secondApplet();
-    add(s);
-    s.init();   
-    show();
+  public void draw() {
+    textSize(32);
+    text("word", 10, 30); 
+    fill(0, 102, 153);
+    text("word", 10, 60);
+    fill(0, 102, 153, 51);
+    text("word", 10, 90); 
   }
 }
