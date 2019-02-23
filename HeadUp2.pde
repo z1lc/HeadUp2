@@ -6,11 +6,13 @@ import javax.swing.*;
 int TIME_LIMIT_SECONDS = 10;
 int CHECKS_PER_SECOND = 1;
 float MAX_OPACITY = 0.95;
+String SETTINGS_FILE_NAME = "settings.txt";
 
 PImage mind;
 PFrame f; // create frame for webcam image
 String[] list = new String[2]; // list for settings
 int ypos; // the height 
+int yValueMiddleOfBox;
 int rSig; // the distance
 int almTimer;
 int trigHeight = 0; // height limit
@@ -31,13 +33,13 @@ void setup() {
   opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);  
   video.start();
   
-  File localFile = new File(dataPath("settings.txt")); // manage settings file
-  if(localFile.exists()){ // check for existing file
+  File localFile = new File(dataPath(SETTINGS_FILE_NAME));
+  if(localFile.exists()) {
     println("Loading Settings...");
-    loadsettings("settings.txt");
+    loadsettings();
   }
-  else{ // create new file
-    savesettings("settings.txt");
+  else {
+    savesettings();
   }
 }
 
@@ -47,8 +49,15 @@ void draw() {
     alm = false;
   }
   if (trigHeight!=0 && trigDist!=0 && !pause) {
-    if (rSig > trigDist || ypos > trigHeight) alm = true; //compare values to limits 
-    else alm = false;
+    if (rSig > trigDist) {
+      alm = true;
+      println(System.currentTimeMillis() + " distance");
+    } else if (yValueMiddleOfBox > trigHeight) {
+      alm = true;
+      println(System.currentTimeMillis() + " height");
+    } else {
+      alm = false;
+    }
   } else {
     alm = false;
   }
@@ -73,17 +82,17 @@ void draw() {
   stroke(0, 255, 0);
   
   noFill();
-  if(mousePressed && mouseOver(10, 200, 100, 30)) {
+  if (mousePressed && mouseOver(10, 200, 100, 30)) {
     trigDist = rSig + 3; // set trigger distance plus a little extra distance
-    savesettings("settings.txt");
+    savesettings();
     fill(0, 255, 0);
   }
   rect(10, 200, 100, 30);  
   
   noFill();  
-  if(mousePressed && mouseOver(120, 200, 100, 30)) {
-    trigHeight = ypos+3; // set trigger height
-    savesettings("settings.txt");
+  if (mousePressed && mouseOver(120, 200, 100, 30)) {
+    trigHeight = yValueMiddleOfBox + 3; // set trigger height
+    savesettings();
     fill(0, 255, 0);
   }
   rect(120, 200, 100, 30);
@@ -112,13 +121,18 @@ void getDistance() { //OPenCV functions
     rect(faces[i].x, faces[i].y, faces[i].width, faces[i].height);
     rSig = faces[i].height;
     ypos = faces[i].y;
-    int delta = trigDist-faces[i].height;
+    yValueMiddleOfBox = faces[i].y + faces[i].height / 2;  
+    int delta = trigDist - faces[i].height;
     //the following line draws a second box with the limit distance
-    if (trigDist!=0) 
-    rect(faces[i].x-delta/2, faces[i].y-delta/2, faces[i].width+delta, trigDist);
+    if (trigDist != 0) { 
+      rect(faces[i].x - delta / 2, faces[i].y - delta / 2, faces[i].width + delta, trigDist);
+      line(faces[i].x, yValueMiddleOfBox, faces[i].x + faces[i].width, yValueMiddleOfBox);
+    }
   }
   //This draws a line at the limit height:
-  if (trigHeight!=0) line(0, trigHeight, width*2, trigHeight);
+  if (trigHeight != 0) {
+    line(0, trigHeight, width*2, trigHeight);
+  }
   popMatrix();
 }
 
@@ -155,16 +169,16 @@ public void setPopup(boolean popEnable){
   }
 }
 
-public void loadsettings(String paramString){ // load settings from file
-  String[] arrayOfString = loadStrings(dataPath(paramString));
+public void loadsettings() {
+  String[] arrayOfString = loadStrings(dataPath(SETTINGS_FILE_NAME));
   trigHeight = Integer.parseInt(arrayOfString[0]);
   trigDist = Integer.parseInt(arrayOfString[1]);
 }
   
-public void savesettings(String paramString){ // save settings to file
+public void savesettings() {
   list[0] = str(trigHeight);
   list[1] = str(trigDist);
-  saveStrings(dataPath(paramString), list);
+  saveStrings(dataPath(SETTINGS_FILE_NAME), list);
 }
 
 public class PFrame extends JFrame { // configure popup window and position
@@ -178,14 +192,5 @@ public class PFrame extends JFrame { // configure popup window and position
     JLabel label = new JLabel("CHECK YOUR POSTURE!", SwingConstants.CENTER);
     label.setFont(new Font("Sans", Font.PLAIN, 150));
     add(label);
-  }
-  
-  public void draw() {
-    textSize(32);
-    text("word", 10, 30); 
-    fill(0, 102, 153);
-    text("word", 10, 60);
-    fill(0, 102, 153, 51);
-    text("word", 10, 90); 
   }
 }
